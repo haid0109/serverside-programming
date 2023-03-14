@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres
+    environment:
+      PGPORT: 5434
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
