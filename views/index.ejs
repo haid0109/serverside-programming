@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Document</title>
+
+		<style>
+			body {
+				margin: 0;
+				height: 100%;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			ul {
+				margin: 0;
+				padding: 0;
+			}
+
+			ul li {
+				cursor: pointer;
+				position: relative;
+				padding: 12px 8px 12px 40px;
+				list-style-type: none;
+				background: #eee;
+				font-size: 18px;
+				transition: 0.2s;
+				-webkit-user-select: none;
+				-moz-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+			}
+
+			ul li:nth-child(odd) {
+				background: #f9f9f9;
+			}
+
+			ul li:hover {
+				background: #ddd;
+			}
+
+			.remove {
+				position: absolute;
+				right: 0;
+				top: 0;
+				padding: 12px 16px 12px 16px;
+			}
+
+			.remove:hover {
+				background-color: #f44336;
+				color: white;
+			}
+
+			.header {
+				background-color: #f44336;
+				padding: 30px 40px;
+				color: white;
+				text-align: center;
+			}
+
+			.header:after {
+				content: "";
+				display: table;
+				clear: both;
+			}
+
+			input {
+				margin: 0;
+				border: none;
+				border-radius: 0;
+				width: 75%;
+				padding: 10px;
+				float: left;
+				font-size: 16px;
+			}
+
+			.addBtn {
+				padding: 10px;
+				width: 25%;
+				background: #d9d9d9;
+				color: #555;
+				float: left;
+				text-align: center;
+				font-size: 16px;
+				cursor: pointer;
+				transition: 0.3s;
+				border-radius: 0;
+			}
+
+			.addBtn:hover {
+				background-color: #bbb;
+			}
+
+			.flex-container {
+				display: flex;
+				justify-content: end;
+			}
+
+			.sticky-bottom {
+				width: 100%;
+				position: fixed;
+				bottom: 0;
+				background-color: #899fff;
+				padding: 1em;
+			}
+
+			.navigation-button {
+				width: -moz-fit-content;
+				width: fit-content;
+				padding: 10px;
+				background: #d9d9d9;
+				text-decoration: none;
+				color: #555;
+				cursor: pointer;
+				border: none;
+			}
+
+			.navigation-button:hover {
+				background-color: #bbb;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="myDIV" class="header">
+			<div class="flex-container">
+				<a href="/logout" class="navigation-button">Log out</a>
+			</div>
+			<h2 style="margin:5px">ToDo List</h2>
+			<form action="submit" id="todoForm">
+				<input type="text" id="myInput" placeholder="Title...">
+			</form>
+			<span onclick="addTodo()" class="addBtn">Add</span>
+		</div>
+		<div>
+			<ul id="myUL">
+				<!-- ejs syntax -->
+				<% todos.forEach(todo => { %>
+					<li data-todo-id="<%= todo.id %>">
+						<%= todo.title %>
+						<span class="remove" onclick="removeTodo(event)">✖</span>
+					</li>
+				<% }) %>
+			</ul>
+		</div>
+		<div class="flex-container sticky-bottom">
+			<button id="goToNextPageBtn" class="navigation-button">Go to next page</button>
+		</div>
+
+		<script>
+			//putting the todo title input inside of a <form> is a bit unnecessary, but it enables submitting todos by hitting Enter
+			document.getElementById('todoForm').addEventListener('submit', (event) => {
+				event.preventDefault(); //prevents page from redirecting/reloading
+				addTodo();
+			});
+
+			document.getElementById('goToNextPageBtn').addEventListener('click', () => {
+				const todos = Array.from(document.getElementById('myUL').children).map(child => {
+					return {
+						id: child.dataset.todoId,
+						title: child.innerText.split('\n')[0]
+					};
+				});
+				const stringifiedTodos = JSON.stringify(todos);
+
+				location = `/verify-todos?data=${stringifiedTodos}`;
+			});
+			
+			async function addTodo() {
+				const input = document.getElementById("myInput");
+				if (input.value === '') {
+					alert("You must write something!");
+					return;
+				}
+
+				const result = await fetch('https://localhost:7890/api/todo', {
+					method: 'POST',
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ title: input.value }),
+				});
+
+				if(result.status !== 200) {
+					alert('failed to add todo.');
+					return;
+				}
+				const { todo } = await result.json();
+				console.log('aa', todo)
+
+				//creates todo list element
+				const li = document.createElement("li");
+				li.dataset.todoId = todo.id;
+				li.appendChild(document.createTextNode(input.value));
+				document.getElementById("myUL").appendChild(li);
+
+				input.value = "";
+
+				//creates todo remove button (span)
+				const span = document.createElement("SPAN");
+				span.className = "remove";
+				span.appendChild(document.createTextNode("✖"));
+				span.addEventListener('click', removeTodo);
+				
+				li.appendChild(span);
+			}
+
+			async function removeTodo(event) {
+				const parent = event.target.parentElement;
+				const result = await fetch(`https://localhost:7890/api/todo/${parent.dataset.todoId}`, {
+					method: 'DELETE',
+				});
+
+				if(result.status !== 200) {
+					alert('failed to remove todo.');
+					return;
+				}
+
+				parent.remove();
+			}
+		</script>
+	</body>
+</html>
