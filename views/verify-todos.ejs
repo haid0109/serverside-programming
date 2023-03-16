@@ -158,6 +158,9 @@
 					console.error('error: invalid todo data', err)
 					return;
 				}
+
+				//uses EJS syntax to pass in the verified variable, EJS syntax can't be added directly to JS, thats why it is inside a string
+				alert('<%= verified %>' == 'true' ? "ToDo's passed verification!" : "ToDo's have NOT passed verification...");
 			});
 		</script>
 	</body>

@@ -53,7 +53,22 @@ app.get('/', async (req, res) => {
 });
 
 app.get('/verify-todos', async (req, res) => {
-	res.render('verify-todos');
+	const savedTodos = (await Todo.findAll({
+			where: { userId: req.oidc.user.sub }
+		}))
+		.map(todo => {
+			return {
+				id: todo.dataValues.id,
+				title: aes.decrypt(todo.title, key).toString(cryptoJs.enc.Utf8),
+			};
+		});
+
+	// savedTodos.push({ id: 123, title: 'testHashVerification' }); //comment out to make test succeed
+
+	const savedTodosHash = cryptoJs.SHA3(JSON.stringify(savedTodos)).toString()
+	const incomingTodosHash = cryptoJs.SHA3(req.query.data).toString();
+
+	res.render('verify-todos', { verified: savedTodosHash === incomingTodosHash });
 });
 
 app.post('/api/todo', express.json(), async (req, res) => { //`express.json()` is a middleware that is required in order for routes to receive json requests, the request body would be empty otherwise
